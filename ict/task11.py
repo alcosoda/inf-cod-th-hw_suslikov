@@ -1,3 +1,4 @@
+from fractions import Fraction
 from math import lcm
 
 def sample(dist, rng):
@@ -22,3 +23,24 @@ def generate(src, rng):
         symbol = sample(src["models"][model], rng)
         yield symbol
         i += 1
+
+def symbol_dist(src, t):
+    source = src["source"]
+    L = len(source)
+
+    switch = source[t % L]
+
+    dist = {}
+    for model_name, p_model in src['switches'][switch].items():
+        for symbol, p_symbol in src['models'][model_name].items():
+            dist[symbol] = dist.get(symbol, Fraction(0)) + p_symbol * p_model
+    return dist     
+
+def block_prob(src, seq, start):
+    
+    p = 1
+    for i, a in enumerate(seq):
+        p_symbol = symbol_dist(src, start+i)[a]
+        p *= p_symbol
+
+    return p
