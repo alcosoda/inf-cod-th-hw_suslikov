@@ -22,3 +22,4 @@
 | 15 | `tests/files/ru.txt` | Claude Opus 5.5 (Anthropic), через Claude Code | Тестовый текст на русском языке для 1.3 |
 | 16 | `tests/files/en.txt` | Python Software Foundation, файл `LICENSE.txt` из дистрибутива CPython 3.11 | Тестовый текст на английском языке для 1.3 |
 | 17 | `REPORT.md` | Claude Opus 5.5 (Anthropic), через Claude Code, по решениям и измерениям этой работы | Текст отчёта |
+| 18 | `tests/run_tests.py` | Claude Opus 5.5 (Anthropic), через Claude Code | Прогон всех тестов, создание повреждённых .zmh, генерация `RESULTS.md` |

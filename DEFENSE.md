@@ -81,6 +81,31 @@ python run.py code tests/sources/var_stationary.json --rate -1              # о
 Ручная задача 3 (двоичный, P(0) = 3/4, n = 3): типы 000 (1 блок, 27/64), 001 (3 блока по 9/64), 011 (3 блока по 3/64), 111 (1 блок, 1/64).
 4 наиболее вероятных блока = 000 + три блока типа «одна единица»: 27/64 + 27/64 = 54/64, Pe = 10/64 = 0.15625.
 
+## Задача 1.3 — архиватор ZipMeHuffman
+
+```bash
+python run.py compress tests/files/ru.txt --stats                 # -> tests/files/ru.txt.zmh, H, l_avg, заголовок, данные, коэффициент
+python run.py decompress tests/files/ru.txt.zmh                   # исходник есть -> пишет ru.restored.txt, проверяет CRC
+python run.py compress tests/files/repeat.bin --stats             # один байт: длина кода 0, заголовок 32 байта, данных 0
+python run.py compress tests/files/empty.bin --stats              # пустой: 29 байт заголовка
+python run.py compress tests/files/image.png --stats              # сжатый PNG: H ~ 8, файл вырастает
+python run.py compress FILE --out other.zmh                       # своё имя результата
+python run.py decompress other.zmh --out restored.bin             # своё имя восстановленного
+python tests/run_tests.py                                         # все тесты + перегенерация RESULTS.md (~35 с)
+```
+
+Диагностики (`out/broken_*.zmh` создаёт `tests/run_tests.py`):
+```bash
+python run.py decompress out/broken_foreign.zmh       # PNG вместо zmh       -> "чужой формат", код 3
+python run.py decompress out/broken_trunc_data.zmh    # отрезаны 100 байт    -> "файл обрезан", код 4
+python run.py decompress out/broken_flip_data.zmh     # инверсия бита в данных -> "файл повреждён", код 5
+python run.py decompress out/broken_flip_header.zmh   # инверсия бита в заголовке -> CRC заголовка, код 5
+```
+
+Заголовок `.zmh` (big-endian): `ZMH` + версия (4) | N (8) | CRC-32 данных (4) | B — бит в потоке (8) | способ модели (1) | модель | CRC-32 заголовка (4).
+Фиксированная часть — 29 байт. Модель — длины канонического кода: пары `(байт, длина)` → 1 + 2m байт, или битовая карта → 32 + m байт (берётся меньшее, пары при m ≤ 31).
+Пример: m = 1 → 29 + 3 = 32 байта; m = 2 → 34; m = 256 → 29 + 288 = 317.
+
 ## Некорректные и вырожденные входы (закрытый тест)
 
 ```bash
@@ -128,3 +153,11 @@ Get-ChildItem tests/sources/bad/*.json | ForEach-Object { "{0,-32} {1}" -f $_.Na
 | ℓ(n) без float | `ict/task12.py`, `code_length` |
 | типы блоков, мультиномиальный коэффициент, целочисленные веса | `ict/task12.py`, `best_types` |
 | таблица Pe(n), вывод о n0 | `run.py`, `cmd_code` |
+| длины кодов Хаффмана | `ict/huffman.py`, `huffman_lengths` |
+| канонический код | `ict/huffman.py`, `canonical_codes` |
+| декодирование | `ict/huffman.py`, `decode` |
+| первый проход (модель) / второй (кодирование) | `ict/zmh.py`, `compress`: `frequencies` → `pack_bits` |
+| неполный последний байт | `ict/zmh.py`, `pack_bits` (дополнение нулями) и `decompress` (B бит, проверка дополнения) |
+| хранение модели | `ict/zmh.py`, `pack_model` / `unpack_model` |
+| CRC-32 | `ict/zmh.py`, `crc32` |
+| чужой / обрезан / повреждён | `ict/zmh.py`, `decompress`, классы `ForeignFormat` / `Truncated` / `Corrupted` |
