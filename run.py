@@ -11,6 +11,7 @@ from itertools import islice
 
 from ict.variant import S, get_params
 from ict.source import load_source, SourceError
+from ict.zmh import ZmhError
 from ict.task11 import generate
 
 
@@ -264,6 +265,69 @@ def cmd_code(args):
     print(f"время расчёта таблицы: {elapsed:.2f} с")
 
 
+def read_input(path):
+    try:
+        with open(path, "rb") as f:
+            return f.read()
+    except OSError as e:
+        raise UsageError(f"не удалось прочитать {path}: {e.strerror}") from None
+
+
+def write_output(path, data):
+    try:
+        folder = os.path.dirname(path)
+        if folder:
+            os.makedirs(folder, exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(data)
+    except OSError as e:
+        raise UsageError(f"не удалось записать {path}: {e.strerror}") from None
+
+
+def cmd_compress(args):
+    from ict.zmh import compress
+    from ict.task12 import entropy
+
+    data = read_input(args.file)
+    blob, st = compress(data)
+    out = args.out or args.file + ".zmh"
+    write_output(out, blob)
+    print(f"{args.file} -> {out}: {len(data)} -> {len(blob)} байт")
+
+    if args.stats:
+        n = len(data)
+        freqs, lengths = st["freqs"], st["lengths"]
+        H = entropy({b: Fraction(c, n) for b, c in freqs.items()}) + 0.0 if n else 0.0
+        avg = Fraction(sum(c * lengths[b] for b, c in freqs.items()), n) if n else Fraction(0)
+        print(f"различных байт:               {len(freqs)}")
+        print(f"эмпирическая энтропия H:      {H:.6f} бит/байт")
+        print(f"средняя длина кода l_avg:     {float(avg):.6f} бит/байт  (l_avg - H = {float(avg) - H:.6f})")
+        print(f"заголовок:                    {st['header']} байт")
+        print(f"данные:                       {st['data']} байт ({st['bits']} бит)")
+        if n:
+            print(f"коэффициент сжатия:           {n / len(blob):.4f}  (исходный / сжатый; "
+                  f"размер {'вырос' if len(blob) > n else 'уменьшился'} на {abs(len(blob) - n) / n:.2%})")
+        else:
+            print(f"коэффициент сжатия:           не определён (пустой файл, сжатый = {len(blob)} байт заголовка)")
+
+
+def cmd_decompress(args):
+    from ict.zmh import decompress
+
+    blob = read_input(args.file)
+    out = decompress(blob)
+    if args.out:
+        target = args.out
+    else:
+        target = args.file[:-4] if args.file.lower().endswith(".zmh") else args.file + ".out"
+        if os.path.exists(target):
+            # Не перезаписываем исходный файл: пишем рядом
+            stem, ext = os.path.splitext(target)
+            target = f"{stem}.restored{ext}"
+    write_output(target, out)
+    print(f"{args.file} -> {target}: восстановлено {len(out)} байт, целостность подтверждена (CRC-32 совпадает)")
+
+
 def main():
     # Без этого на Windows при выводе в файл/пайп кириллица уходит в cp1251
     sys.stdout.reconfigure(encoding="utf-8")
@@ -302,11 +366,23 @@ def main():
     p.add_argument("--nmax", type=int, default=50, help="максимальная длина блока (по умолчанию 50)")
     p.add_argument("--out", default="out/code.json", help="файл с описанием кода (по умолчанию out/code.json)")
 
+    p = sub.add_parser("compress", allow_abbrev=False, help="1.3: сжатие файла в .zmh (Хаффман, 2 прохода)")
+    p.add_argument("file", help="исходный файл")
+    p.add_argument("--stats", action="store_true", help="вывести H, среднюю длину кода, размеры, коэффициент")
+    p.add_argument("--out", default=None, help="имя .zmh (по умолчанию <файл>.zmh)")
+
+    p = sub.add_parser("decompress", allow_abbrev=False, help="1.3: восстановление из .zmh с проверкой целостности")
+    p.add_argument("file", help="файл .zmh")
+    p.add_argument("--out", default=None,
+                   help="куда записать (по умолчанию имя без .zmh; если файл есть -- <имя>.restored<расш>)")
+
     args = parser.parse_args()
 
     if args.variant:
-        for name, value in get_params(args.s).items():
-            print(f"{name} = {value}")
+        params = get_params(args.s)
+        # Первая строка -- номер варианта (п. 1.3 задания), дальше параметры
+        print(f"вариант: {params['s']}")
+        print(", ".join(f"{name} = {value}" for name, value in params.items() if name != "s"))
         return 0
     if args.command is None:
         parser.print_help()
@@ -321,9 +397,17 @@ def main():
             cmd_entropy(args)
         elif args.command == "code":
             cmd_code(args)
+        elif args.command == "compress":
+            cmd_compress(args)
+        elif args.command == "decompress":
+            cmd_decompress(args)
     except (SourceError, UsageError) as e:
         print(f"ошибка: {e}", file=sys.stderr)
         return 2
+    except ZmhError as e:
+        # Разные коды: 3 -- чужой формат, 4 -- обрезан, 5 -- повреждён
+        print(f"ошибка ({e.kind}): {e}", file=sys.stderr)
+        return {"чужой формат": 3, "файл обрезан": 4}.get(e.kind, 5)
     except KeyboardInterrupt:
         # KeyboardInterrupt -- не Exception, без этой ветки Ctrl+C дал бы трейсбек
         print("\nпрервано пользователем", file=sys.stderr)
