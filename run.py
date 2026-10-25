@@ -54,7 +54,7 @@ TABLE_NS = [10 ** e for e in range(2, 7)]
 
 def cmd_prob(args):
     # Импорт здесь, а не наверху: пока функции не написаны, режим generate продолжает работать
-    from ict.task11 import block_prob, avg_block_prob, freq_estimates
+    from ict.task11 import block_prob, avg_block_prob, freq_estimates, period
 
     if args.n <= 0:
         raise UsageError(f"N должно быть > 0, получено {args.n}")
@@ -76,10 +76,9 @@ def cmd_prob(args):
     rng = random.Random(args.seed)
     freqs = freq_estimates(src, seq, [N for N in Ns if N >= r], rng)
 
-    L = len(src["source"])
-    print(f"последовательность: {' '.join(seq)}  (r = {r}, L = {L}, seed = {args.seed})")
+    print(f"последовательность: {' '.join(seq)}  (r = {r}, период = {period(src)}, seed = {args.seed})")
     print(f"1) Pr{{X1..Xr = a1..ar}}           = {fmt_frac(p_first)}")
-    print(f"2) среднее по L сдвигам          = {fmt_frac(p_avg)}")
+    print(f"2) среднее по сдвигам в периоде    = {fmt_frac(p_avg)}")
     print(f"3) частотная оценка, N = {args.n:<8} = {fmt_frac(freqs[args.n])}")
     print()
     print(f"{'N':>8}  {'частота':>10}  {'|f - (1)|':>10}  {'|f - (2)|':>10}")

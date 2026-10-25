@@ -2,8 +2,6 @@ from fractions import Fraction
 from math import lcm
 from collections import deque
 
-
-
 def sample(dist, rng):
     # считаем общий знаменатель чтобы не терять точность на float
     D = lcm(*(p.denominator for p in dist.values()))
@@ -62,23 +60,8 @@ def generate(src, rng):
         return markov_generate(src, rng)
     if src['type'] == 'mixture':
         return mixture_generate(src, rng)
-    else:
-        return
-
-
-    
-def symbol_dist(src, t):
-    source = src["source"]
-    L = len(source)
-
-    switch = source[t % L]
-
-    dist = {}
-    for model_name, p_model in src['switches'][switch].items():
-        for symbol, p_symbol in src['models'][model_name].items():
-            dist[symbol] = dist.get(symbol, Fraction(0)) + p_symbol * p_model
-    return dist     
-
+    raise ValueError("Неправильный тип сорса")
+        
 
 # renamed for makrov extension 
 def switching_block_prob(src, seq, start):
@@ -94,10 +77,83 @@ def switching_block_prob(src, seq, start):
     return p
 
 
+def mixture_block_prob(src, seq, start):
+    return sum(w * block_prob(comp, seq, start) for w, comp in src['components'])
+
+
+
+# === BEGIN GENERATED: Claude Opus 5.5 (Anthropic), see SOURCES.md #6 ===
+def markov_block_prob(src, seq, start):
+    """Pr{X_{start+1..start+r} = seq} для марковского источника глубины d (start с 0)."""
+    d = src["order"]
+    trans = src["transitions"]
+
+    # Этап А: сдвигаем распределение состояний start раз
+    dist = dict(src["initial"])
+    for _ in range(start):
+        new = {}
+        for state, p in dist.items():
+            for symbol, q in trans[state].items():
+                nxt = state[1:] + (symbol,)
+                new[nxt] = new.get(nxt, Fraction(0)) + p * q
+        dist = new
+
+    # Этап Б
+    r = len(seq)
+    if r <= d:
+        # блок короче окна: суммируем все состояния, которые НАЧИНАЮТСЯ с seq
+        return sum((p for state, p in dist.items() if state[:r] == tuple(seq)), Fraction(0))
+    # блок длиннее окна: первые d символов -- состояние, дальше переходы по одному символу
+    p = dist.get(tuple(seq[:d]), Fraction(0))
+    for i in range(d, r):
+        prev = tuple(seq[i - d:i])                 # окно из d символов перед i-м
+        if prev not in trans:
+            return Fraction(0)
+        p *= trans[prev].get(seq[i], Fraction(0))  # вероятность, что после окна prev идёт seq[i]
+    return p
+# === END GENERATED: Claude Opus 5.5 (Anthropic), see SOURCES.md #6 ===
+
+
+
+def block_prob(src, seq, start):
+    if src['type'] == "switching":
+        return switching_block_prob(src, seq, start)
+    if src['type'] == 'markov':
+        return markov_block_prob(src, seq, start)
+    if src['type'] == 'mixture':
+        return mixture_block_prob(src, seq, start)
+    raise ValueError("Неправильный тип сорса")
+
+
 
 def avg_block_prob(src, seq):
-    L = len(src["source"])
-    return sum(switching_block_prob(src, seq, j) for j in range(L)) / L
+    L = period(src) #len(src["source"])
+    return sum(block_prob(src, seq, j) for j in range(L)) / L
+
+
+
+def period(src):
+    if src['type'] == 'switching':
+        return len(src['source'])
+    if src["type"] == 'markov':
+        return 1  # у марковского источника нет периодической структуры (см. FORMAT_SPEC.md)
+    if src['type'] == 'mixture':
+        return lcm(*(period(comp) for w, comp in src['components']))
+    raise ValueError("Неправильный тип сорса")
+
+
+    
+def symbol_dist(src, t):
+    source = src["source"]
+    L = len(source)
+
+    switch = source[t % L]
+
+    dist = {}
+    for model_name, p_model in src['switches'][switch].items():
+        for symbol, p_symbol in src['models'][model_name].items():
+            dist[symbol] = dist.get(symbol, Fraction(0)) + p_symbol * p_model
+    return dist     
 
 
 
