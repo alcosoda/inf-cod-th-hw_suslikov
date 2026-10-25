@@ -94,12 +94,19 @@ python run.py decompress other.zmh --out restored.bin             # своё и�
 python tests/run_tests.py                                         # все тесты + перегенерация RESULTS.md (~35 с)
 ```
 
-Диагностики (`out/broken_*.zmh` создаёт `tests/run_tests.py`):
+Проверка ручных задач 2 и 6 (веса — целые, дроби или десятичные):
 ```bash
-python run.py decompress out/broken_foreign.zmh       # PNG вместо zmh       -> "чужой формат", код 3
-python run.py decompress out/broken_trunc_data.zmh    # отрезаны 100 байт    -> "файл обрезан", код 4
-python run.py decompress out/broken_flip_data.zmh     # инверсия бита в данных -> "файл повреждён", код 5
-python run.py decompress out/broken_flip_header.zmh   # инверсия бита в заголовке -> CRC заголовка, код 5
+python run.py huffman 5 3 2 1 1 1            # длины, канонические слова, l_avg, H, Крафт, заголовок .zmh, граница «сжатия в минус»
+python run.py huffman 1/2 1/4 1/8 1/8        # степени двойки: l_avg = H
+python run.py decompress tests/zmh/ru.txt.zmh --out out/ru_check.txt   # готовый .zmh из репозитория
+```
+
+Диагностики (`tests/zmh/broken_*.zmh` создаёт `tests/run_tests.py`):
+```bash
+python run.py decompress tests/zmh/broken_foreign.zmh       # PNG вместо zmh       -> "чужой формат", код 3
+python run.py decompress tests/zmh/broken_trunc_data.zmh    # отрезаны 100 байт    -> "файл обрезан", код 4
+python run.py decompress tests/zmh/broken_flip_data.zmh     # инверсия бита в данных -> "файл повреждён", код 5
+python run.py decompress tests/zmh/broken_flip_header.zmh   # инверсия бита в заголовке -> CRC заголовка, код 5
 ```
 
 Заголовок `.zmh` (big-endian): `ZMH` + версия (4) | N (8) | CRC-32 данных (4) | B — бит в потоке (8) | способ модели (1) | модель | CRC-32 заголовка (4).

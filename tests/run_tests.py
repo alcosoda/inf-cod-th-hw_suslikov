@@ -13,6 +13,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "out")
+ZMH = os.path.join(ROOT, "tests", "zmh")  # входы режима восстановления (в репозитории)
 
 S = "tests/sources/"
 F = "tests/files/"
@@ -90,18 +91,28 @@ SECTIONS = [
                     f"decompress out/{name}.zmh --out out/{name}.restored")
     ]),
     ("1.3: повреждённые, чужие и обрезанные файлы", [
-        "decompress out/broken_foreign.zmh",
-        "decompress out/broken_tiny.zmh",
-        "decompress out/broken_version.zmh",
-        "decompress out/broken_trunc_header.zmh",
-        "decompress out/broken_trunc_data.zmh",
-        "decompress out/broken_flip_data.zmh",
-        "decompress out/broken_flip_header.zmh",
-        "decompress out/broken_extra.zmh",
-        "decompress out/broken_flip_padding.zmh",
-        "decompress out/broken_empty.zmh",
+        "decompress tests/zmh/ru.txt.zmh --out out/ru_from_tests.txt",
+        "decompress tests/zmh/broken_foreign.zmh",
+        "decompress tests/zmh/broken_tiny.zmh",
+        "decompress tests/zmh/broken_version.zmh",
+        "decompress tests/zmh/broken_trunc_header.zmh",
+        "decompress tests/zmh/broken_trunc_data.zmh",
+        "decompress tests/zmh/broken_flip_data.zmh",
+        "decompress tests/zmh/broken_flip_header.zmh",
+        "decompress tests/zmh/broken_extra.zmh",
+        "decompress tests/zmh/broken_flip_padding.zmh",
+        "decompress tests/zmh/broken_empty.zmh",
         "decompress nonexistent.zmh",
         "compress nonexistent.txt",
+    ]),
+    ("Проверка ручных задач: код Хаффмана для заданных весов", [
+        "huffman 5 3 2 1 1 1",
+        "huffman 1/2 1/4 1/8 1/8",
+        "huffman 1/3 0.25 5/12",
+        "huffman 7",
+        "huffman 1 1",
+        "huffman 0 1",
+        "huffman 1 abc",
     ]),
 ]
 
@@ -114,11 +125,14 @@ def run(args):
 
 
 def make_broken():
-    """Портит out/ru.txt.zmh разными способами (вызывается после сжатия ru.txt)."""
+    """Кладёт out/ru.txt.zmh в tests/zmh/ и портит его разными способами (после сжатия ru.txt)."""
     blob = open(os.path.join(OUT, "ru.txt.zmh"), "rb").read()
+    os.makedirs(ZMH, exist_ok=True)
+    with open(os.path.join(ZMH, "ru.txt.zmh"), "wb") as f:
+        f.write(blob)
 
     def w(name, data):
-        with open(os.path.join(OUT, f"broken_{name}.zmh"), "wb") as f:
+        with open(os.path.join(ZMH, f"broken_{name}.zmh"), "wb") as f:
             f.write(data)
 
     w("foreign", open(os.path.join(ROOT, F, "image.png"), "rb").read())
@@ -152,9 +166,12 @@ def main():
             print(f"[{code}] {cmd}")
     # Побайтная проверка восстановления
     lines += ["## 1.3: побайтное сравнение восстановленных файлов", ""]
-    for name in ("ru.txt", "en.txt", "image.png", "repeat.bin", "empty.bin", "random.bin", "two_symbols.bin"):
-        same = open(os.path.join(ROOT, F, name), "rb").read() == open(os.path.join(OUT, f"{name}.restored"), "rb").read()
-        lines.append(f"- {name}: {'совпадает' if same else 'НЕ СОВПАДАЕТ'}")
+    pairs = [(F + name, f"out/{name}.restored")
+             for name in ("ru.txt", "en.txt", "image.png", "repeat.bin", "empty.bin", "random.bin", "two_symbols.bin")]
+    pairs.append((F + "ru.txt", "out/ru_from_tests.txt"))
+    for src, restored in pairs:
+        same = open(os.path.join(ROOT, src), "rb").read() == open(os.path.join(ROOT, restored), "rb").read()
+        lines.append(f"- {src} = {restored}: {'совпадает' if same else 'НЕ СОВПАДАЕТ'}")
         failures += not same
     with open(os.path.join(ROOT, "RESULTS.md"), "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")

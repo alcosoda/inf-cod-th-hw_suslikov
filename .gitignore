@@ -5,3 +5,4 @@ __pycache__/
 out/
 *.zmh
 *.restored*
+!tests/zmh/*.zmh

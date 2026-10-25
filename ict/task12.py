@@ -69,17 +69,26 @@ def best_types(P, n, K):
 
     types = []  # (w, число блоков, counts)
 
+    if k == 1:
+        types.append((powers[0][n], 1, (n,)))
+    combs = [[comb(m, j) for j in range(m + 1)] for m in range(n + 1)]  # C(m, j) заранее
+    pa, pb = (powers[-2], powers[-1]) if k >= 2 else (None, None)
+
     def rec(i, left, w, count, counts):
         # i -- текущий символ, left -- сколько позиций блока ещё не распределено,
         # w и count -- накопленные произведения по символам 0..i-1
-        if i == k - 1:  # последний символ забирает остаток
-            types.append((w * powers[i][left], count, counts + (left,)))
+        if i == k - 2:
+            # Два последних символа -- плоским циклом: без рекурсивного вызова на каждый тип
+            cl = combs[left]
+            for ni in range(left + 1):
+                types.append((w * pa[ni] * pb[left - ni], count * cl[ni], counts + (ni, left - ni)))
             return
         for ni in range(left + 1):
             # C(left, ni): куда в оставшихся left позициях поставить ni символов i
-            rec(i + 1, left - ni, w * powers[i][ni], count * comb(left, ni), counts + (ni,))
+            rec(i + 1, left - ni, w * powers[i][ni], count * combs[left][ni], counts + (ni,))
 
-    rec(0, n, 1, 1, ())
+    if k >= 2:
+        rec(0, n, 1, 1, ())
     types.sort(key=lambda t: t[0], reverse=True)
 
     chosen = []

@@ -174,8 +174,10 @@ def write_code_file(path, P, n, l, q, R, Pe, chosen, max_words=256):
         "codebook_size": total,
         "Pe": str(Pe),
         "Pe_approx": float(Pe),
-        "types": [{"counts": dict(zip(symbols, counts)), "blocks_in_type": c, "blocks_taken": take}
-                  for counts, take, c in chosen],
+        # Тип -- строка "n_1 .. n_k : блоков в типе : взято" (порядок символов -- alphabet);
+        # словарь на каждый тип давал файл в мегабайты и секунды на запись при n = 50
+        "types_format": "числа вхождений символов alphabet : блоков в типе : взято блоков",
+        "types": [f"{' '.join(map(str, counts))} : {c} : {take}" for counts, take, c in chosen],
     }
     if total <= max_words:
         words, i = [], 0
@@ -328,6 +330,56 @@ def cmd_decompress(args):
     print(f"{args.file} -> {target}: восстановлено {len(out)} байт, целостность подтверждена (CRC-32 совпадает)")
 
 
+def cmd_huffman(args):
+    """Код Хаффмана для заданных весов -- проверка ручных задач 2 и 6."""
+    from ict.huffman import huffman_lengths, canonical_codes
+    from ict.task12 import entropy
+    from ict.zmh import FIXED, MODEL_PAIRS, pack_model
+
+    weights = args.weights
+    if not 1 <= len(weights) <= 256:
+        raise UsageError(f"нужно от 1 до 256 весов, дано {len(weights)}")
+    if any(w <= 0 for w in weights):
+        raise UsageError("веса должны быть положительными")
+    names = [chr(ord("a") + i) if len(weights) <= 26 else str(i) for i in range(len(weights))]
+    total = sum(weights)
+    P = {i: w / total for i, w in enumerate(weights)}
+    # Тот же код, что в архиваторе: один символ -- длина 0
+    lengths = huffman_lengths(dict(enumerate(weights))) if len(weights) > 1 else {0: 0}
+    codes = canonical_codes(lengths)
+
+    print("символ  вес         p          длина  канонический код")
+    for i, w in enumerate(weights):
+        code, l = codes[i]
+        word = format(code, f"0{l}b") if l else "(пусто)"
+        print(f"{names[i]:<7} {str(w):<11} {float(P[i]):<10.6f} {l:<6} {word}")
+    avg = sum(P[i] * lengths[i] for i in P)
+    H = entropy(P) + 0.0
+    kraft = sum(Fraction(1, 2 ** l) for l in lengths.values())
+    print(f"средняя длина l_avg = {avg} ~ {float(avg):.6f} бит/символ")
+    print(f"энтропия H          = {H:.6f} бит/символ;  l_avg - H = {float(avg) - H:.6f}  (0 <= l_avg - H < 1)")
+    print(f"неравенство Крафта: sum 2^-l = {kraft}")
+
+    # Ручная задача 6: веса -- частоты байтов, оценка заголовка .zmh
+    mode, model = pack_model(lengths)
+    fixed = FIXED.size + 4  # поля фиксированной длины + CRC-32 заголовка
+    header = fixed + len(model)
+    m = len(weights)
+    print(f"заголовок .zmh для m = {m} различных байт: {fixed} (фиксированная часть) + {len(model)} (модель, "
+          f"{'пары 1+2m' if mode == MODEL_PAIRS else 'битовая карта 32+m'}) = {header} байт")
+    if all(w == int(w) for w in weights):
+        n = int(total)
+        data = (sum(int(w) * lengths[i] for i, w in enumerate(weights)) + 7) // 8
+        print(f"если веса -- счётчики байтов (файл {n} байт): {n} -> {header} + {data} = {header + data} байт")
+    if avg >= 8:
+        print("l_avg >= 8: сжатие в минус при любом размере файла (выигрыша на данных нет, заголовок сверху)")
+    else:
+        # N*(1 - l_avg/8) < header  <=>  N < header / (1 - l_avg/8)
+        bound = Fraction(header) / (1 - avg / 8)
+        print(f"при таких долях байтов файл длины N сжимается в {header} + ceil(N*l_avg/8) байт; "
+              f"сжатие в минус примерно при N < {float(bound):.1f}")
+
+
 def main():
     # Без этого на Windows при выводе в файл/пайп кириллица уходит в cp1251
     sys.stdout.reconfigure(encoding="utf-8")
@@ -376,6 +428,10 @@ def main():
     p.add_argument("--out", default=None,
                    help="куда записать (по умолчанию имя без .zmh; если файл есть -- <имя>.restored<расш>)")
 
+    p = sub.add_parser("huffman", allow_abbrev=False,
+                       help="код Хаффмана для заданных весов, l_avg, H, заголовок .zmh (ручные задачи 2 и 6)")
+    p.add_argument("weights", nargs="+", type=parse_fraction, help="веса: целые, дроби 1/3 или десятичные")
+
     args = parser.parse_args()
 
     if args.variant:
@@ -401,6 +457,8 @@ def main():
             cmd_compress(args)
         elif args.command == "decompress":
             cmd_decompress(args)
+        elif args.command == "huffman":
+            cmd_huffman(args)
     except (SourceError, UsageError) as e:
         print(f"ошибка: {e}", file=sys.stderr)
         return 2

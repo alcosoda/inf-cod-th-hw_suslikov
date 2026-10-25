@@ -593,7 +593,7 @@ R = 5/2 ~ 2.500000 бит/символ,  q = 7,  eps = 1/1000,  n_max = 50
 минимальное n с Pe(n) <= eps: n = 4
 R > H(X) (2.500000 > 1.962031): n0 СУЩЕСТВУЕТ -- по прямой теореме кодирования Pe(n) -> 0 при n -> oo. На отрезке Pe(n) <= eps для всех n >= 4.
 описание кода для n = 4 (l = 3) записано в out/code_r2.5.json
-время расчёта таблицы: 0.54 с
+время расчёта таблицы: 0.48 с
 ```
 
 `python run.py code tests/sources/var_stationary.json --rate 1.99 --out out/code_r1.99.json` → код 0
@@ -657,7 +657,7 @@ R = 199/100 ~ 1.990000 бит/символ,  q = 7,  eps = 1/1000,  n_max = 50
 на отрезке n = 1..50 нет n с Pe(n) <= eps
 R > H(X) (1.990000 > 1.962031): n0 СУЩЕСТВУЕТ -- по прямой теореме кодирования Pe(n) -> 0 при n -> oo. На рассмотренном отрезке n <= 50 оно ещё не достигнуто.
 описание кода для n = 50 (l = 35) записано в out/code_r1.99.json
-время расчёта таблицы: 0.50 с
+время расчёта таблицы: 0.42 с
 ```
 
 `python run.py code tests/sources/var_stationary.json --rate 1.95 --out out/code_r1.95.json` → код 0
@@ -721,7 +721,7 @@ R = 39/20 ~ 1.950000 бит/символ,  q = 7,  eps = 1/1000,  n_max = 50
 на отрезке n = 1..50 нет n с Pe(n) <= eps
 R < H(X) (1.950000 < 1.962031): n0 НЕ существует -- по обратной теореме Pe(n) -> 1 при n -> oo, поэтому Pe(n) > eps для всех достаточно больших n.
 описание кода для n = 50 (l = 34) записано в out/code_r1.95.json
-время расчёта таблицы: 0.43 с
+время расчёта таблицы: 0.37 с
 ```
 
 `python run.py code tests/sources/var_stationary.json --rate 1.95 --eps 3/20 --out out/code_r1.95_eps.json` → код 0
@@ -786,7 +786,7 @@ R = 39/20 ~ 1.950000 бит/символ,  q = 7,  eps = 3/20,  n_max = 50
 R < H(X) (1.950000 < 1.962031): n0 НЕ существует -- по обратной теореме Pe(n) -> 1 при n -> oo, поэтому Pe(n) > eps для всех достаточно больших n.
 При этом при малых n условие выполняется (n = 3, 13) -- это не противоречит теореме: она асимптотическая.
 описание кода для n = 3 (l = 2) записано в out/code_r1.95_eps.json
-время расчёта таблицы: 0.44 с
+время расчёта таблицы: 0.35 с
 ```
 
 `python run.py code tests/sources/task12/five_symbols.json --rate 2 --out out/code_five.json` → код 0
@@ -850,7 +850,7 @@ R = 2 ~ 2.000000 бит/символ,  q = 7,  eps = 1/1000,  n_max = 50
 на отрезке n = 1..50 нет n с Pe(n) <= eps
 R < H(X) (2.000000 < 2.200640): n0 НЕ существует -- по обратной теореме Pe(n) -> 1 при n -> oo, поэтому Pe(n) > eps для всех достаточно больших n.
 описание кода для n = 50 (l = 35) записано в out/code_five.json
-время расчёта таблицы: 5.89 с
+время расчёта таблицы: 4.98 с
 ```
 
 `python run.py code tests/sources/task12/binary.json --rate 2/3 --q 2 --nmax 3 --eps 1/10 --out out/code_binary.json` → код 0
@@ -1067,61 +1067,67 @@ out/two_symbols.bin.zmh -> out/two_symbols.bin.restored: восстановле�
 
 ## 1.3: повреждённые, чужие и обрезанные файлы
 
-`python run.py decompress out/broken_foreign.zmh` → код 3
+`python run.py decompress tests/zmh/ru.txt.zmh --out out/ru_from_tests.txt` → код 0
+
+```
+tests/zmh/ru.txt.zmh -> out/ru_from_tests.txt: восстановлено 4317 байт, целостность подтверждена (CRC-32 совпадает)
+```
+
+`python run.py decompress tests/zmh/broken_foreign.zmh` → код 3
 
 ```
 ошибка (чужой формат): нет сигнатуры ZMH: это не файл .zmh
 ```
 
-`python run.py decompress out/broken_tiny.zmh` → код 4
+`python run.py decompress tests/zmh/broken_tiny.zmh` → код 4
 
 ```
 ошибка (файл обрезан): файл обрезан: 2 байт, заголовок не помещается
 ```
 
-`python run.py decompress out/broken_version.zmh` → код 3
+`python run.py decompress tests/zmh/broken_version.zmh` → код 3
 
 ```
 ошибка (чужой формат): сигнатура ZMH, но неизвестная версия формата 7
 ```
 
-`python run.py decompress out/broken_trunc_header.zmh` → код 4
+`python run.py decompress tests/zmh/broken_trunc_header.zmh` → код 4
 
 ```
 ошибка (файл обрезан): файл обрезан: не хватает байт в части «заголовок» (20 из 25)
 ```
 
-`python run.py decompress out/broken_trunc_data.zmh` → код 4
+`python run.py decompress tests/zmh/broken_trunc_data.zmh` → код 4
 
 ```
 ошибка (файл обрезан): файл обрезан: поток кодов 2029 байт из 2129
 ```
 
-`python run.py decompress out/broken_flip_data.zmh` → код 5
+`python run.py decompress tests/zmh/broken_flip_data.zmh` → код 5
 
 ```
 ошибка (файл повреждён): поток кодов не декодируется: биты кончились на символе 4315 из 4317
 ```
 
-`python run.py decompress out/broken_flip_header.zmh` → код 5
+`python run.py decompress tests/zmh/broken_flip_header.zmh` → код 5
 
 ```
 ошибка (файл повреждён): повреждён заголовок: CRC-32 заголовка не совпадает
 ```
 
-`python run.py decompress out/broken_extra.zmh` → код 5
+`python run.py decompress tests/zmh/broken_extra.zmh` → код 5
 
 ```
 ошибка (файл повреждён): лишние 1 байт после потока кодов
 ```
 
-`python run.py decompress out/broken_flip_padding.zmh` → код 5
+`python run.py decompress tests/zmh/broken_flip_padding.zmh` → код 5
 
 ```
 ошибка (файл повреждён): ненулевые биты дополнения в последнем байте
 ```
 
-`python run.py decompress out/broken_empty.zmh` → код 3
+`python run.py decompress tests/zmh/broken_empty.zmh` → код 3
 
 ```
 ошибка (чужой формат): нет сигнатуры ZMH: это не файл .zmh
@@ -1139,12 +1145,102 @@ out/two_symbols.bin.zmh -> out/two_symbols.bin.restored: восстановле�
 ошибка: не удалось прочитать nonexistent.txt: No such file or directory
 ```
 
+## Проверка ручных задач: код Хаффмана для заданных весов
+
+`python run.py huffman 5 3 2 1 1 1` → код 0
+
+```
+символ  вес         p          длина  канонический код
+a       5           0.384615   2      00
+b       3           0.230769   2      01
+c       2           0.153846   3      100
+d       1           0.076923   3      101
+e       1           0.076923   3      110
+f       1           0.076923   3      111
+средняя длина l_avg = 31/13 ~ 2.384615 бит/символ
+энтропия H          = 2.287784 бит/символ;  l_avg - H = 0.096832  (0 <= l_avg - H < 1)
+неравенство Крафта: sum 2^-l = 1
+заголовок .zmh для m = 6 различных байт: 29 (фиксированная часть) + 13 (модель, пары 1+2m) = 42 байт
+если веса -- счётчики байтов (файл 13 байт): 13 -> 42 + 4 = 46 байт
+при таких долях байтов файл длины N сжимается в 42 + ceil(N*l_avg/8) байт; сжатие в минус примерно при N < 59.8
+```
+
+`python run.py huffman 1/2 1/4 1/8 1/8` → код 0
+
+```
+символ  вес         p          длина  канонический код
+a       1/2         0.500000   1      0
+b       1/4         0.250000   2      10
+c       1/8         0.125000   3      110
+d       1/8         0.125000   3      111
+средняя длина l_avg = 7/4 ~ 1.750000 бит/символ
+энтропия H          = 1.750000 бит/символ;  l_avg - H = 0.000000  (0 <= l_avg - H < 1)
+неравенство Крафта: sum 2^-l = 1
+заголовок .zmh для m = 4 различных байт: 29 (фиксированная часть) + 9 (модель, пары 1+2m) = 38 байт
+при таких долях байтов файл длины N сжимается в 38 + ceil(N*l_avg/8) байт; сжатие в минус примерно при N < 48.6
+```
+
+`python run.py huffman 1/3 0.25 5/12` → код 0
+
+```
+символ  вес         p          длина  канонический код
+a       1/3         0.333333   2      10
+b       1/4         0.250000   2      11
+c       5/12        0.416667   1      0
+средняя длина l_avg = 19/12 ~ 1.583333 бит/символ
+энтропия H          = 1.554585 бит/символ;  l_avg - H = 0.028748  (0 <= l_avg - H < 1)
+неравенство Крафта: sum 2^-l = 1
+заголовок .zmh для m = 3 различных байт: 29 (фиксированная часть) + 7 (модель, пары 1+2m) = 36 байт
+при таких долях байтов файл длины N сжимается в 36 + ceil(N*l_avg/8) байт; сжатие в минус примерно при N < 44.9
+```
+
+`python run.py huffman 7` → код 0
+
+```
+символ  вес         p          длина  канонический код
+a       7           1.000000   0      (пусто)
+средняя длина l_avg = 0 ~ 0.000000 бит/символ
+энтропия H          = 0.000000 бит/символ;  l_avg - H = 0.000000  (0 <= l_avg - H < 1)
+неравенство Крафта: sum 2^-l = 1
+заголовок .zmh для m = 1 различных байт: 29 (фиксированная часть) + 3 (модель, пары 1+2m) = 32 байт
+если веса -- счётчики байтов (файл 7 байт): 7 -> 32 + 0 = 32 байт
+при таких долях байтов файл длины N сжимается в 32 + ceil(N*l_avg/8) байт; сжатие в минус примерно при N < 32.0
+```
+
+`python run.py huffman 1 1` → код 0
+
+```
+символ  вес         p          длина  канонический код
+a       1           0.500000   1      0
+b       1           0.500000   1      1
+средняя длина l_avg = 1 ~ 1.000000 бит/символ
+энтропия H          = 1.000000 бит/символ;  l_avg - H = 0.000000  (0 <= l_avg - H < 1)
+неравенство Крафта: sum 2^-l = 1
+заголовок .zmh для m = 2 различных байт: 29 (фиксированная часть) + 5 (модель, пары 1+2m) = 34 байт
+если веса -- счётчики байтов (файл 2 байт): 2 -> 34 + 1 = 35 байт
+при таких долях байтов файл длины N сжимается в 34 + ceil(N*l_avg/8) байт; сжатие в минус примерно при N < 38.9
+```
+
+`python run.py huffman 0 1` → код 2
+
+```
+ошибка: веса должны быть положительными
+```
+
+`python run.py huffman 1 abc` → код 2
+
+```
+usage: run.py huffman [-h] weights [weights ...]
+run.py huffman: error: argument weights: ожидается число или дробь, получено 'abc'
+```
+
 ## 1.3: побайтное сравнение восстановленных файлов
 
-- ru.txt: совпадает
-- en.txt: совпадает
-- image.png: совпадает
-- repeat.bin: совпадает
-- empty.bin: совпадает
-- random.bin: совпадает
-- two_symbols.bin: совпадает
+- tests/files/ru.txt = out/ru.txt.restored: совпадает
+- tests/files/en.txt = out/en.txt.restored: совпадает
+- tests/files/image.png = out/image.png.restored: совпадает
+- tests/files/repeat.bin = out/repeat.bin.restored: совпадает
+- tests/files/empty.bin = out/empty.bin.restored: совпадает
+- tests/files/random.bin = out/random.bin.restored: совпадает
+- tests/files/two_symbols.bin = out/two_symbols.bin.restored: совпадает
+- tests/files/ru.txt = out/ru_from_tests.txt: совпадает
