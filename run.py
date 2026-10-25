@@ -39,6 +39,15 @@ class UsageError(Exception):
     """Некорректные аргументы режима (не описание источника)."""
 
 
+def fmt_frac(x):
+    """Точная дробь + приближение; огромные дроби (длинные блоки) не печатаем целиком."""
+    approx = f"{float(x):.6g}"
+    if len(str(x)) <= 40:
+        return f"{x}  ~ {approx}"
+    return (f"~ {approx}  (точная дробь: числитель {len(str(x.numerator))} цифр, "
+            f"знаменатель {len(str(x.denominator))} цифр)")
+
+
 # Длины реализации для таблицы сходимости частотной оценки
 TABLE_NS = [10 ** e for e in range(2, 7)]
 
@@ -69,9 +78,9 @@ def cmd_prob(args):
 
     L = len(src["source"])
     print(f"последовательность: {' '.join(seq)}  (r = {r}, L = {L}, seed = {args.seed})")
-    print(f"1) Pr{{X1..Xr = a1..ar}}           = {p_first}  ~ {float(p_first):.6f}")
-    print(f"2) среднее по L сдвигам          = {p_avg}  ~ {float(p_avg):.6f}")
-    print(f"3) частотная оценка, N = {args.n:<8} = {freqs[args.n]}  ~ {float(freqs[args.n]):.6f}")
+    print(f"1) Pr{{X1..Xr = a1..ar}}           = {fmt_frac(p_first)}")
+    print(f"2) среднее по L сдвигам          = {fmt_frac(p_avg)}")
+    print(f"3) частотная оценка, N = {args.n:<8} = {fmt_frac(freqs[args.n])}")
     print()
     print(f"{'N':>8}  {'частота':>10}  {'|f - (1)|':>10}  {'|f - (2)|':>10}")
     for N in TABLE_NS:

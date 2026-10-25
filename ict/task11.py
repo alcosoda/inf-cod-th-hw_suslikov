@@ -40,14 +40,22 @@ def symbol_dist(src, t):
 def block_prob(src, seq, start):
     p = 1
     for i, a in enumerate(seq):
-        p_symbol = symbol_dist(src, start+i)[a]
+        # === BEGIN GENERATED: Claude Opus 5.5 (Anthropic), see SOURCES.md #3 ===
+        # Символа может не быть в распределении такта (нет в алфавите или модели
+        # этой фазы его не выдают) -- тогда его вероятность ровно 0, а не KeyError
+        p_symbol = symbol_dist(src, start+i).get(a, Fraction(0))
+        # === END GENERATED: Claude Opus 5.5 (Anthropic), see SOURCES.md #3 ===
         p *= p_symbol
 
     return p
 
+
+
 def avg_block_prob(src, seq):
     L = len(src["source"])
     return sum(block_prob(src, seq, j) for j in range(L)) / L
+
+
 
 def freq_estimates(src, seq, Ns, rng):
     r = len(seq)
