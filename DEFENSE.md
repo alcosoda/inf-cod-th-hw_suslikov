@@ -58,6 +58,29 @@ python run.py prob tests/sources/degenerate/deterministic_period.json --n 100 --
 python run.py prob tests/sources/example2.json --n 10 --seq 0 1     # строка 1): Pr{X1=0, X2=1} = 1/2 * 13/30 = 13/60
 ```
 
+## Задача 1.2 — равномерное кодирование источника без памяти
+
+```bash
+python run.py entropy tests/sources/var_stationary.json        # стационарен, без памяти: P и H = 1.962031
+python run.py entropy tests/sources/var_nonstationary.json     # нарушено: распределение на такте 2 != такт 0
+python run.py entropy tests/sources/var_markov.json            # нарушено: память
+python run.py entropy tests/sources/var_mixture.json           # нарушено: смесь (зависимость через компоненту)
+python run.py entropy tests/sources/degenerate/one_symbol.json # H = 0
+python run.py code tests/sources/var_stationary.json --rate 2.5             # R > H: минимальное n = 4, n0 существует
+python run.py code tests/sources/var_stationary.json --rate 1.9 --nmax 12   # R < H: n0 не существует
+python run.py code tests/sources/task12/five_symbols.json --rate 2          # k = 5, n_max = 50: время < 10 с
+python run.py code tests/sources/task12/binary.json --rate 2/3 --q 2 --nmax 3 --eps 1/10 --out out/bin.json   # ручная задача 3
+python run.py code tests/sources/var_stationary.json --rate 2.5 --q 3 --eps 1/100   # q и eps можно переопределить
+python run.py code tests/sources/var_mixture.json --rate 1                  # ошибка: не источник без памяти
+python run.py code tests/sources/var_stationary.json --rate -1              # ошибка: R < 0
+```
+
+По умолчанию `q` и `eps` берутся из варианта (q = 7, eps = 1/1000), `--nmax 50`, код пишется в `out/code.json`.
+Для малых кодов (≤ 256 слов) в файле перечислены сами пары «блок → кодовое слово».
+
+Ручная задача 3 (двоичный, P(0) = 3/4, n = 3): типы 000 (1 блок, 27/64), 001 (3 блока по 9/64), 011 (3 блока по 3/64), 111 (1 блок, 1/64).
+4 наиболее вероятных блока = 000 + три блока типа «одна единица»: 27/64 + 27/64 = 54/64, Pe = 10/64 = 0.15625.
+
 ## Некорректные и вырожденные входы (закрытый тест)
 
 ```bash
@@ -100,3 +123,8 @@ Get-ChildItem tests/sources/bad/*.json | ForEach-Object { "{0,-32} {1}" -f $_.Na
 | среднее по периоду | `ict/task11.py`, `avg_block_prob`, `period` |
 | частотная оценка, знаменатель N−r+1 | `ict/task11.py`, `freq_estimates` |
 | seed → `random.Random` | `run.py`, `cmd_generate` / `cmd_prob` |
+| проверка «стационарен и без памяти» | `ict/task12.py`, `check_memoryless` |
+| энтропия | `ict/task12.py`, `entropy` |
+| ℓ(n) без float | `ict/task12.py`, `code_length` |
+| типы блоков, мультиномиальный коэффициент, целочисленные веса | `ict/task12.py`, `best_types` |
+| таблица Pe(n), вывод о n0 | `run.py`, `cmd_code` |

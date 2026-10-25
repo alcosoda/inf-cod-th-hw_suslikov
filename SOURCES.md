@@ -15,3 +15,4 @@
 | 8 | `DEFENSE.md` | Claude Opus 5.5 (Anthropic), через Claude Code | Шпаргалка команд для защиты и указатель «где что в коде» |
 | 9 | `run.py` — обработка `KeyboardInterrupt` | Claude Opus 5.5 (Anthropic), через Claude Code | Ctrl+C завершает программу сообщением и кодом 130 без трейсбека |
 | 10 | `tests/sources/task12/*` | Claude Opus 5.5 (Anthropic), через Claude Code | Тестовые источники для задачи 1.2: k = 5 (замер времени), двоичный (ручная задача 3), равномерный |
+| 11 | `ict/task12.py` — `check_memoryless`, `fmt_dist`, `code_length`, `best_types`, исправление в `entropy` | Claude Opus 5.5 (Anthropic), через Claude Code | Проверка «стационарен и без памяти»; точная длина кода l(n) через сравнение целых q^(lb) <= 2^(na); построение q^l наиболее вероятных блоков через типы блоков в целочисленной арифметике (общий знаменатель D) |
