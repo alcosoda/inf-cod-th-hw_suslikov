@@ -47,16 +47,26 @@ def markov_generate(src, rng):
 
 
 
+def mixture_generate(src, rng):
+    weights = {i: w for i, (w, comp) in enumerate(src["components"])}
+    i = sample(weights, rng)
+    comp = src["components"][i][1]
+    yield from generate(comp, rng)
+
+
+
 def generate(src, rng):
     if src['type'] == "switching":
         return switching_generate(src, rng)
     if src['type'] == 'markov':
         return markov_generate(src, rng)
+    if src['type'] == 'mixture':
+        return mixture_generate(src, rng)
     else:
         return
 
 
-
+    
 def symbol_dist(src, t):
     source = src["source"]
     L = len(source)
@@ -107,3 +117,5 @@ def freq_estimates(src, seq, Ns, rng):
             result[i] = Fraction(count, i-r+1)
         if i == N_max:
             return result
+
+        
