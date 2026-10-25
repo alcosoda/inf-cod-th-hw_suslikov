@@ -1,4 +1,4 @@
-import fractions
+from fractions import Fraction
 
 # my input data from time: 19-suslikov ivan
 S = 19
@@ -11,7 +11,7 @@ def get_params(s):
     d = 1 + s % 3
     q = (2, 3, 5, 7)[s % 4]
 
-    eps = fractions.Fraction(1, 10 ** (2 + s % 3))
+    eps = Fraction(1, 10 ** (2 + s % 3))
 
     params = {}
     params["s"] = s
