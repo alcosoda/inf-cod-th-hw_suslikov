@@ -2,6 +2,8 @@ from fractions import Fraction
 from math import lcm
 from collections import deque
 
+
+
 def sample(dist, rng):
     # считаем общий знаменатель чтобы не терять точность на float
     D = lcm(*(p.denominator for p in dist.values()))
@@ -14,7 +16,9 @@ def sample(dist, rng):
         if acc > r:
             return outcome
 
-def generate(src, rng):
+
+# renamed for makrov extension 
+def switching_generate(src, rng):
     source = src["source"]
     L = len(source)
     i = 0
@@ -24,6 +28,34 @@ def generate(src, rng):
         symbol = sample(src["models"][model], rng)
         yield symbol
         i += 1
+
+
+
+def markov_generate(src, rng):
+    
+    state = sample(src["initial"], rng)
+    for symbol in state:
+        yield symbol
+    while True:
+        symbol = sample(src["transitions"][state], rng)
+        yield symbol
+
+        # тут дебильная ошибка
+        # state = state[1:] + tuple(symbol) returns "1","0" when symbol =10
+        
+        state = state[1:] + (symbol, )
+
+
+
+def generate(src, rng):
+    if src['type'] == "switching":
+        return switching_generate(src, rng)
+    if src['type'] == 'markov':
+        return markov_generate(src, rng)
+    else:
+        return
+
+
 
 def symbol_dist(src, t):
     source = src["source"]
@@ -37,7 +69,9 @@ def symbol_dist(src, t):
             dist[symbol] = dist.get(symbol, Fraction(0)) + p_symbol * p_model
     return dist     
 
-def block_prob(src, seq, start):
+
+# renamed for makrov extension 
+def switching_block_prob(src, seq, start):
     p = 1
     for i, a in enumerate(seq):
         # === BEGIN GENERATED: Claude Opus 5.5 (Anthropic), see SOURCES.md #3 ===
@@ -53,7 +87,7 @@ def block_prob(src, seq, start):
 
 def avg_block_prob(src, seq):
     L = len(src["source"])
-    return sum(block_prob(src, seq, j) for j in range(L)) / L
+    return sum(switching_block_prob(src, seq, j) for j in range(L)) / L
 
 
 
