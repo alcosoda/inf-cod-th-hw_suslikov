@@ -133,6 +133,10 @@ def main():
     except (SourceError, UsageError) as e:
         print(f"ошибка: {e}", file=sys.stderr)
         return 2
+    except KeyboardInterrupt:
+        # KeyboardInterrupt -- не Exception, без этой ветки Ctrl+C дал бы трейсбек
+        print("\nпрервано пользователем", file=sys.stderr)
+        return 130
     except Exception as e:
         # Страховка: программа не должна падать с трейсбеком ни на каком входе
         print(f"внутренняя ошибка: {e!r}", file=sys.stderr)

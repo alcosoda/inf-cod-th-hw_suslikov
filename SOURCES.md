@@ -11,3 +11,6 @@
 | 4 | `FORMAT_SPEC.md` — весь текст | Claude Opus 5.5 (Anthropic), через Claude Code | Спецификация расширенного формата: грамматика, семантика, обоснование (не)эргодичности, примеры |
 | 5 | `tests/sources/var_*.json` | Claude Opus 5.5 (Anthropic), через Claude Code | Примеры источников варианта (k=4, M=3, L=7, d=2): стационарный, нестационарный, марковский (стационарный и нет), неэргодическая смесь |
 | 6 | `ict/task11.py` — функция `markov_block_prob` | Claude Opus 5.5 (Anthropic), через Claude Code | Точная вероятность блока для марковского источника глубины d: сдвиг распределения состояний на `start` тактов, затем произведение переходных вероятностей |
+| 7 | `tests/sources/bad/*`, `tests/sources/degenerate/*` | Claude Opus 5.5 (Anthropic), через Claude Code | Набор некорректных и вырожденных входов для задачи 1.1 |
+| 8 | `DEFENSE.md` | Claude Opus 5.5 (Anthropic), через Claude Code | Шпаргалка команд для защиты и указатель «где что в коде» |
+| 9 | `run.py` — обработка `KeyboardInterrupt` | Claude Opus 5.5 (Anthropic), через Claude Code | Ctrl+C завершает программу сообщением и кодом 130 без трейсбека |

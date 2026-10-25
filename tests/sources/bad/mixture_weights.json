@@ -1,0 +1,23 @@
+{
+  "type": "mixture",
+  "components": [
+    {
+      "weight": "1/2",
+      "source": {
+        "models": {
+          "m": {
+            "a": "1"
+          }
+        },
+        "switches": {
+          "s": {
+            "m": "1"
+          }
+        },
+        "source": [
+          "s"
+        ]
+      }
+    }
+  ]
+}

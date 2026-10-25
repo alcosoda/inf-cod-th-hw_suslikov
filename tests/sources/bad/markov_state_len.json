@@ -1,0 +1,12 @@
+{
+  "type": "markov",
+  "order": 2,
+  "initial": {
+    "a": "1"
+  },
+  "transitions": {
+    "a a": {
+      "a": "1"
+    }
+  }
+}
