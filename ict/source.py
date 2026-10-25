@@ -62,7 +62,8 @@ def _reject_duplicates(pairs):
 def read_json(path):
     """Читает JSON-файл, превращая любые проблемы чтения в SourceError."""
     try:
-        with open(path, encoding="utf-8") as f:
+        # utf-8-sig: Блокнот Windows сохраняет UTF-8 с BOM, такой файл тоже корректен
+        with open(path, encoding="utf-8-sig") as f:
             return json.load(f, object_pairs_hook=_reject_duplicates)
     except OSError as e:
         raise SourceError(f"не удалось открыть файл {path}: {e.strerror}") from None

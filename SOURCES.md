@@ -24,3 +24,4 @@
 | 17 | `REPORT.md` | Claude Opus 5.5 (Anthropic), через Claude Code, по решениям и измерениям этой работы | Текст отчёта |
 | 18 | `tests/run_tests.py` | Claude Opus 5.5 (Anthropic), через Claude Code | Прогон всех тестов, создание повреждённых .zmh, генерация `RESULTS.md` |
 | 19 | `run.py` — `cmd_huffman` (режим `huffman`); `ict/task12.py` — плоский цикл по двум последним символам в `best_types`; компактная запись типов в `write_code_file`; `tests/zmh/` | Claude Opus 5.5 (Anthropic), через Claude Code | Проверка ручных задач 2 и 6 (код Хаффмана для заданных весов, размер заголовка .zmh, граница «сжатия в минус»); ускорение задачи 1.2; входные .zmh для режима восстановления |
+| 20 | `ict/source.py` — чтение JSON как `utf-8-sig`; `run.py` — проверка s ≥ 1; `tests/sources/degenerate/utf8_bom.json` | Claude Opus 5.5 (Anthropic), через Claude Code | Приём файлов UTF-8 с BOM (Блокнот Windows); диагностика некорректного номера студента |

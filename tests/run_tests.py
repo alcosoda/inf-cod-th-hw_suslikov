@@ -21,6 +21,7 @@ F = "tests/files/"
 SECTIONS = [
     ("Вариант", [
         "--variant",
+        "--s 0 --variant",
     ]),
     ("1.1, режим 1: реализация источника", [
         f"generate {S}example2.json --n 60 --seed 1",
@@ -38,6 +39,7 @@ SECTIONS = [
         f"generate {S}degenerate/multichar_symbols.json --n 12 --seed 3",
         f"generate {S}degenerate/markov_multichar.json --n 12 --seed 3",
         f"generate {S}degenerate/unicode_slash.json --n 20",
+        f"generate {S}degenerate/utf8_bom.json --n 20",
     ]),
     ("1.1, режим 2: точная вероятность и частотная оценка", [
         f"prob {S}example2.json --n 1000 --seq 0 0 --seed 1",

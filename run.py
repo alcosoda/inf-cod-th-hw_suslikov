@@ -434,6 +434,9 @@ def main():
 
     args = parser.parse_args()
 
+    if args.s < 1:
+        print(f"ошибка: номер студента s должен быть >= 1, получено {args.s}", file=sys.stderr)
+        return 2
     if args.variant:
         params = get_params(args.s)
         # Первая строка -- номер варианта (п. 1.3 задания), дальше параметры
