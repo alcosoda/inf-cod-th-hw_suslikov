@@ -1,5 +1,6 @@
 from fractions import Fraction
 from math import lcm
+from collections import deque
 
 def sample(dist, rng):
     # считаем общий знаменатель чтобы не терять точность на float
@@ -37,10 +38,30 @@ def symbol_dist(src, t):
     return dist     
 
 def block_prob(src, seq, start):
-    
     p = 1
     for i, a in enumerate(seq):
         p_symbol = symbol_dist(src, start+i)[a]
         p *= p_symbol
 
     return p
+
+def avg_block_prob(src, seq):
+    L = len(src["source"])
+    return sum(block_prob(src, seq, j) for j in range(L)) / L
+
+def freq_estimates(src, seq, Ns, rng):
+    r = len(seq)
+    target = list(seq)
+    window = deque(maxlen=r)
+    count = 0
+    result = {}
+    N_max = max(Ns)
+
+    for i, symbol in enumerate(generate(src, rng), start=1):
+        window.append(symbol)
+        if i >= r  and list(window) == target:
+            count += 1
+        if i in Ns:
+            result[i] = Fraction(count, i-r+1)
+        if i == N_max:
+            return result
