@@ -1,7 +1,12 @@
 # === BEGIN GENERATED: Claude Opus 5.5 (Anthropic), see SOURCES.md #2 ===
 import argparse
+import json
+import math
+import os
 import random
 import sys
+import time
+from fractions import Fraction
 from itertools import islice
 
 from ict.variant import S, get_params
@@ -90,6 +95,175 @@ def cmd_prob(args):
         print(f"{N:>8}  {float(f):>10.6f}  {float(abs(f - p_first)):>10.6f}  {float(abs(f - p_avg)):>10.6f}")
 
 
+def parse_fraction(text):
+    """Аргумент вида "3/2", "1.5", "1e-3" -> точная дробь."""
+    try:
+        return Fraction(text.replace("∕", "/").strip())
+    except (ValueError, ZeroDivisionError):
+        raise argparse.ArgumentTypeError(f"ожидается число или дробь, получено {text!r}")
+
+
+def get_memoryless(src):
+    """(P, None) для стационарного источника без памяти, иначе (None, причина)."""
+    from ict.task12 import check_memoryless
+    return check_memoryless(src)
+
+
+def cmd_entropy(args):
+    from ict.task12 import entropy
+
+    src = load_source(args.source)
+    P, reason = get_memoryless(src)
+    if P is None:
+        print(f"источник НЕ является стационарным источником без памяти: {reason}")
+        return
+    print("источник стационарен и не имеет памяти")
+    print("распределение P:")
+    for symbol, p in P.items():
+        print(f"  {symbol!r}: {p}  ~ {float(p):.6f}")
+    print(f"H(X) = {entropy(P) + 0.0:.6f} бит/символ  (k = {len(P)}, максимум log2 k = {math.log2(len(P)):.6f})")
+
+
+def fmt_big(x, q, l):
+    """Мощность кода q^l: целиком, если короткая, иначе как степень."""
+    return str(x) if len(str(x)) <= 12 else f"{q}^{l}"
+
+
+def multiset_permutations(counts, symbols):
+    """Все различные блоки данного типа в лексикографическом порядке (для вывода кодовых слов)."""
+    n = sum(counts)
+    counts = list(counts)
+    block = []
+
+    def rec():
+        if len(block) == n:
+            yield tuple(block)
+            return
+        for i, s in enumerate(symbols):
+            if counts[i]:
+                counts[i] -= 1
+                block.append(s)
+                yield from rec()
+                block.pop()
+                counts[i] += 1
+    yield from rec()
+
+
+def to_base(x, q, l):
+    """Номер x -> кодовое слово длины l в алфавите {0..q-1}."""
+    digits = []
+    for _ in range(l):
+        x, d = divmod(x, q)
+        digits.append(str(d))
+    return " ".join(reversed(digits)) if q > 10 else "".join(reversed(digits))
+
+
+def write_code_file(path, P, n, l, q, R, Pe, chosen, max_words=256):
+    symbols = list(P)
+    total = sum(take for _, take, _ in chosen)
+    code = {
+        "description": "Равномерный код источника без памяти (задача 1.2). Кодируемое множество -- "
+                       "q^l наиболее вероятных блоков длины n. Блоки упорядочены по убыванию вероятности "
+                       "типа, внутри типа -- лексикографически по алфавиту; номер блока i (с 0) "
+                       "кодируется словом длины l -- записью i в системе счисления по основанию q. "
+                       "Блок вне множества -- ошибка декодирования.",
+        "alphabet": symbols,
+        "P": {s: str(p) for s, p in P.items()},
+        "n": n, "q": q, "l": l, "R": str(R),
+        "codebook_size": total,
+        "Pe": str(Pe),
+        "Pe_approx": float(Pe),
+        "types": [{"counts": dict(zip(symbols, counts)), "blocks_in_type": c, "blocks_taken": take}
+                  for counts, take, c in chosen],
+    }
+    if total <= max_words:
+        words, i = [], 0
+        for counts, take, _ in chosen:
+            for block, _ in zip(multiset_permutations(counts, symbols), range(take)):
+                words.append({"block": " ".join(block), "word": to_base(i, q, l)})
+                i += 1
+        code["words"] = words
+    folder = os.path.dirname(path)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(code, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+
+def cmd_code(args):
+    from ict.task12 import entropy, code_length, best_types
+
+    params = get_params(args.s)
+    R = args.rate
+    eps = args.eps if args.eps is not None else params["eps"]
+    q = args.q if args.q is not None else params["q"]
+    if R < 0:
+        raise UsageError(f"скорость R должна быть >= 0, получено {R}")
+    if not 0 < eps < 1:
+        raise UsageError(f"граница eps должна быть в (0, 1), получено {eps}")
+    if q < 2:
+        raise UsageError(f"мощность алфавита кодера q должна быть >= 2, получено {q}")
+    if args.nmax < 1:
+        raise UsageError(f"n_max должно быть >= 1, получено {args.nmax}")
+
+    src = load_source(args.source)
+    P, reason = get_memoryless(src)
+    if P is None:
+        raise UsageError(f"режим применим только к стационарному источнику без памяти: {reason}")
+    H = entropy(P) + 0.0  # +0.0 убирает "-0.0" у вырожденного источника
+
+    print(f"P = {{{', '.join(f'{s}: {p}' for s, p in P.items())}}},  H(X) = {H:.6f} бит/символ")
+    print(f"R = {R} ~ {float(R):.6f} бит/символ,  q = {q},  eps = {eps},  n_max = {args.nmax}")
+    print()
+    print(f"{'n':>4}  {'l(n)':>5}  {'q^l':>14}  {'Pe(n)':>14}  Pe <= eps")
+
+    start = time.perf_counter()
+    rows = []
+    for n in range(1, args.nmax + 1):
+        l = code_length(n, R, q)
+        K = q ** l
+        chosen, covered = best_types(P, n, K)
+        Pe = 1 - covered
+        rows.append((n, l, K, Pe, chosen))
+        print(f"{n:>4}  {l:>5}  {fmt_big(K, q, l):>14}  {float(Pe):>14.6e}  {'да' if Pe <= eps else ''}")
+    elapsed = time.perf_counter() - start
+
+    print()
+    good = [n for n, _, _, Pe, _ in rows if Pe <= eps]
+    if good:
+        print(f"минимальное n с Pe(n) <= eps: n = {good[0]}")
+    else:
+        print(f"на отрезке n = 1..{args.nmax} нет n с Pe(n) <= eps")
+
+    # Существует ли n0: Pe(n) <= eps для ВСЕХ n >= n0 -- определяется сравнением R и H
+    tail = None
+    for n, _, _, Pe, _ in reversed(rows):
+        if Pe > eps:
+            break
+        tail = n
+    if float(R) > H:
+        print(f"R > H(X) ({float(R):.6f} > {H:.6f}): n0 СУЩЕСТВУЕТ -- по прямой теореме кодирования "
+              f"Pe(n) -> 0 при n -> oo.", end=" ")
+        print(f"На отрезке Pe(n) <= eps для всех n >= {tail}." if tail else
+              f"На рассмотренном отрезке n <= {args.nmax} оно ещё не достигнуто.")
+    elif float(R) < H:
+        print(f"R < H(X) ({float(R):.6f} < {H:.6f}): n0 НЕ существует -- по обратной теореме "
+              f"Pe(n) -> 1 при n -> oo, поэтому Pe(n) > eps для всех достаточно больших n.")
+        if good:
+            print(f"При этом при малых n условие выполняется (n = {', '.join(map(str, good[:10]))}"
+                  f"{', ...' if len(good) > 10 else ''}) -- это не противоречит теореме: она асимптотическая.")
+    else:
+        print("R = H(X): граничный случай, теорема кодирования не гарантирует Pe(n) -> 0 "
+              "(при ненулевой дисперсии -log2 P(X) Pe(n) не стремится к 0).")
+
+    n_code = good[0] if good else args.nmax
+    n, l, K, Pe, chosen = rows[n_code - 1]
+    write_code_file(args.out, P, n, l, q, R, Pe, chosen)
+    print(f"описание кода для n = {n} (l = {l}) записано в {args.out}")
+    print(f"время расчёта таблицы: {elapsed:.2f} с")
+
+
 def main():
     # Без этого на Windows при выводе в файл/пайп кириллица уходит в cp1251
     sys.stdout.reconfigure(encoding="utf-8")
@@ -115,6 +289,19 @@ def main():
     p.add_argument("--n", type=int, required=True, help="длина реализации для частотной оценки, N > 0")
     p.add_argument("--seq", nargs="+", required=True, help="символы блока через пробел: --seq 0 1 1")
 
+    p = sub.add_parser("entropy", allow_abbrev=False,
+                       help="1.2 режим 1: проверка 'стационарен и без памяти' и энтропия")
+    p.add_argument("source", help="файл с описанием источника (JSON)")
+
+    p = sub.add_parser("code", allow_abbrev=False,
+                       help="1.2 режим 2: равномерный код, таблица Pe(n), минимальное n")
+    p.add_argument("source", help="файл с описанием источника (JSON)")
+    p.add_argument("--rate", "-R", type=parse_fraction, required=True, help="скорость R, бит/символ: 1.5 или 3/2")
+    p.add_argument("--eps", type=parse_fraction, default=None, help="граница Pe (по умолчанию из варианта)")
+    p.add_argument("--q", type=int, default=None, help="мощность алфавита кодера (по умолчанию из варианта)")
+    p.add_argument("--nmax", type=int, default=50, help="максимальная длина блока (по умолчанию 50)")
+    p.add_argument("--out", default="out/code.json", help="файл с описанием кода (по умолчанию out/code.json)")
+
     args = parser.parse_args()
 
     if args.variant:
@@ -130,6 +317,10 @@ def main():
             cmd_generate(args)
         elif args.command == "prob":
             cmd_prob(args)
+        elif args.command == "entropy":
+            cmd_entropy(args)
+        elif args.command == "code":
+            cmd_code(args)
     except (SourceError, UsageError) as e:
         print(f"ошибка: {e}", file=sys.stderr)
         return 2
