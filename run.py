@@ -41,15 +41,16 @@ def main():
     sys.stderr.reconfigure(encoding="utf-8")
 
     # Общие для всех режимов аргументы
-    common = argparse.ArgumentParser(add_help=False)
+    # allow_abbrev=False: иначе argparse молча понимает "--s" как сокращение "--seed"
+    common = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
     common.add_argument("--seed", type=int, default=0, help="seed генератора случайных чисел (по умолчанию 0)")
 
-    parser = argparse.ArgumentParser(description="ДЗ 1. Кодирование источников")
+    parser = argparse.ArgumentParser(description="ДЗ 1. Кодирование источников", allow_abbrev=False)
     parser.add_argument("--variant", action="store_true", help="вывести номер варианта и параметры")
     parser.add_argument("--s", type=int, default=S, help=f"номер студента (по умолчанию {S})")
     sub = parser.add_subparsers(dest="command")
 
-    p = sub.add_parser("generate", parents=[common], help="1.1 режим 1: реализация источника")
+    p = sub.add_parser("generate", parents=[common], allow_abbrev=False, help="1.1 режим 1: реализация источника")
     p.add_argument("source", help="файл с описанием источника (JSON)")
     p.add_argument("--n", type=parse_n, default=None, help="длина реализации; None или <= 0 -- до Ctrl+C")
 

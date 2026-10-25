@@ -1,4 +1,3 @@
-# === BEGIN GENERATED: Claude Opus 5.5 (Anthropic), see SOURCES.md #2 ===
 from math import lcm
 
 def sample(dist, rng):
@@ -23,4 +22,3 @@ def generate(src, rng):
         symbol = sample(src["models"][model], rng)
         yield symbol
         i += 1
-# === END GENERATED: Claude Opus 5.5 (Anthropic), see SOURCES.md #2 ===
